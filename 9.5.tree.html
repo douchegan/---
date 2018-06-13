@@ -1,0 +1,164 @@
+<html>  
+  <head>  
+        <meta charset="utf-8">  
+        <title>树状图</title>  
+<style>
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node {
+  font: 12px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.5px;
+}
+
+</style>
+  </head> 
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var width = 600,
+height = 600;
+
+var tree = d3.layout.tree()
+	.size([height, width/2])
+	.separation(function(a, b) { return (a.parent == b.parent ? 1 : 2); });
+var diagonal = d3.svg.diagonal()
+	.projection(function(d) { return [d.y, d.x]; });
+var line = d3.svg.line()
+	.x(function(d) { return x(d.x); })
+	.y(function(d) { return y(d.y); })
+	// .interpolate("basis");
+	console.log('line', line)
+
+var svg = d3.select("body").append("svg")
+	.attr("width", width)
+	.attr("height", height)
+	.append("g")
+	.attr("transform", "translate(50,0)")
+
+
+// var lineData = [
+// 	{x1: '0', y1: '0', x2: '100', y2: '200'},
+// 	{x1: '10', y1: '0', x2: '50', y2: '300'},
+// 	{x1: '20', y1: '0', x2: '200', y2: '100'}
+// ]
+
+d3.json("city_tree.json", function(error, root) {
+
+	console.log(root);
+	// var nodes = tree.nodes(root);
+	// var links = tree.links(nodes);
+
+	var mainCase = {name:'主案件'}
+	var clue = [
+		{name:'线索001', children: []},
+		{name:'线索002', children: []},
+		{name:'线索003', children: []},
+		{name:'线索004', children: []},
+		{name:'线索005', children: []},
+		{name:'线索006', children: []},
+		{name:'线索007', children: []}
+	]
+	var caseGroup = [
+		{name:'', related: [1,2], type: 'caseGroup'},
+		{name:'', related: [3], type: 'caseGroup'},
+		{name:'', related: [0,4,6], type: 'caseGroup'},
+		{name:'', related: [1,2,5], type: 'caseGroup'},
+		{name:'', related: [4,5,6], type: 'caseGroup'},
+		{name:'', related: [0,1,2,3,6], type: 'caseGroup'},
+		{name:'', related: [0,2,3], type: 'caseGroup'}
+	]
+	caseGroup.map(data => {
+		for(key in clue) {
+			if(data.related.indexOf(parseInt(key)) > -1){
+				data.name = data.name + '|' + clue[key].name;
+				clue[key].children.push(data);
+			}
+		}	
+	})
+	mainCase.children = clue;
+
+	console.log('mainCase', mainCase)
+	var nodes = tree.nodes(mainCase);
+
+	var addX = height/(caseGroup.length + 1);
+	const x = 20;
+	console.log(addX)
+	nodes.map(node => {
+		if (node.type === 'caseGroup') {
+			// var x = addX
+			node.x = addX
+			addX += x;
+		}
+	});
+	var links = tree.links(nodes);
+
+	//去重
+	var hash = {};
+	nodes = nodes.reduce(function(item, next) { 
+		hash[next.name] ? '' : hash[next.name] = true && item.push(next); 
+		return item 
+		}, []
+	) 
+	console.log(nodes);
+	console.log(links);
+	
+	// var link = svg.selectAll(".link")
+	//   .data(links)
+	//   .enter()
+	//   .append("path")
+	//   .attr("class", "link")
+	//   .attr("d", diagonal);
+	
+	// 添加连线，有数据，而没有足够图形元素的时候，使用此方法可以添加足够的元素
+	svg.selectAll('.link')
+	 .data(links)
+	 .enter()
+	 .append('line')
+	 .attr('style', "stroke:rgb(255,0,0);stroke-width:2")
+	 .attr('x1', function(d){ return d.source.y })
+	 .attr('y1', function(d){ return d.source.x })
+	 .attr('x2', function(d){ return d.target.y })
+	 .attr('y2', function(d){ return d.target.x })
+
+	// svg.selectAll('line')
+	//  .data(lineData)
+	//  .enter()
+	//  .append('line')
+	//  .attr('style', "stroke:rgb(255,0,0);stroke-width:2")
+	//  .attr('x1', function(d){ return d.x1 })
+	//  .attr('y1', function(d){ return d.y1 })
+	//  .attr('x2', function(d){ return d.x2 })
+	//  .attr('y2', function(d){ return d.y2 })
+	
+	var node = svg.selectAll(".node")
+	  .data(nodes)
+	  .enter()
+	  .append("g")
+	  .attr("class", "node")
+	  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+	
+	node.append("circle")
+	  .attr("r", 4.5);
+	
+	node.append("text")
+	  .attr("dx", function(d) { return d.children ? -8 : 8; })
+	  .attr("dy", 3)
+	  .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
+	  .text(function(d) { return d.name });
+	});
+	svg.selectAll("line");
+
+</script>
+    </body>  
+</html>  
